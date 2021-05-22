@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import pandas as pd
+from datetime import datetime
 
 
 def personDetector(image):
@@ -87,8 +89,6 @@ def doorDetector(image):
 
 
     indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
-
-    print(fps)
             
     font = cv2.FONT_HERSHEY_PLAIN
     for i in range(len(boxes)):
@@ -100,14 +100,14 @@ def doorDetector(image):
             cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
             cv2.putText(image, label, (x, y + 30), font, 3, color, 2)
     
-    
-
 
 
 cap = cv2.VideoCapture('tailgate.mp4')
+df = pd.read_csv('access_info.csv')
+now = datetime.now()
 
 coco_classes = None
-with open('coco.names', 'r') as f:
+with open('labels.txt', 'r') as f:
     coco_classes = [line.strip() for line in f.readlines()]
 
 door_class = ['door']
@@ -122,57 +122,67 @@ lx=0
 ly=0
 
 cou=-1
-
 bordercolor = (0,255,0)
 
+id = int(input("ENTER EMPLOYEE ID  "))
+print(' ')
+emp_id = df[df["Employee ID"] == id]
+inde = emp_id.index[0]
+
 try:
-    while True:
 
-        cap.set(cv2.CAP_PROP_POS_FRAMES, fps)
-        _, image =cap.read()
+    if(emp_id["Authorisation Result"].item() == 1):
+        df.loc[inde,"Time of Swipe"] = now.strftime("%d/%m/%Y %H:%M:%S")
 
+        while True:
 
-        if fps < 30:
-            doorDetector(image)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, fps)
+            _, image =cap.read()
+
+            if fps < 30:
+                doorDetector(image)
+                
+
+            personDetector(image)
             
-
-        personDetector(image)
-
-        #cv2.rectangle(image, (xxx,yyy),(xxx+www,yyy+hhh), color=(0, 0, 255), thickness=5)
-        #print(xxx,yyy,www,hhh)
-        #print(lx,ly)
-        
-        cv2.line(image, (xxx,yyy+hhh),(xxx+www+20,yyy+(hhh-40)), bordercolor, thickness=3)
-        cv2.line(image, (xxx,yyy+hhh),(xxx,yyy+round(hhh/2)), bordercolor, thickness=3)
-        cv2.line(image, (xxx+www+20,yyy+(hhh-40)),(xxx+www+10,yyy+round(hhh/2)), bordercolor, thickness=3)
+            cv2.line(image, (xxx,yyy+hhh),(xxx+www+20,yyy+(hhh-40)), bordercolor, thickness=3)
+            cv2.line(image, (xxx,yyy+hhh),(xxx,yyy+round(hhh/2)), bordercolor, thickness=3)
+            cv2.line(image, (xxx+www+20,yyy+(hhh-40)),(xxx+www+10,yyy+round(hhh/2)), bordercolor, thickness=3)
 
 
-        t1 = (lx - xxx)*((yyy+(hhh-40)) - (yyy+hhh))
-        t2 = (ly - (yyy+hhh))*((xxx+www+20) - xxx)
-        d = t1 - t2
+            t1 = (lx - xxx)*((yyy+(hhh-40)) - (yyy+hhh))
+            t2 = (ly - (yyy+hhh))*((xxx+www+20) - xxx)
+            d = t1 - t2
 
-        if d>0:
-            #print('left')
-            cou+=1
+            if d>0:
+                cou+=1
 
-        if cou >= 2:
-            bordercolor = (0,0,255)
-            print("ALERT!!!!!!  TAILGATING DETECTED")
-        
-        fps = fps + 5
-        cv2.imshow("Result",image)
-        key = cv2.waitKey(1)
-        if key == 27:
-            break
+            if cou >= 2:
+                bordercolor = (0,0,255)
+                df.loc[inde,"Tailgated"] = "YES"
+                
+                print("ALERT!! TAILGATING DETECTED")
+                
+            
+            fps = fps + 5
+            cv2.imshow("Result",image)
+            key = cv2.waitKey(1)
+            if key == 27:
+                break
+
+
+    else:
+        print("INVALID ID\n")
 
 
 except AttributeError:
-    print("END of VIDEO")
+    print("\nEND of VIDEO")
+    
 
 except Exception as e:
     print(e)
 
 
-
+df.to_csv('access_info.csv',index=False)
 cap.release()
 cv2.destroyAllWindows()
