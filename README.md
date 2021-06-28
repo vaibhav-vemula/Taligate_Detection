@@ -9,5 +9,6 @@ Given a CCTV footage of a secure door entry, detect anyone tailgating(entry with
 You should segment individuals entering building from the video and detect weather they are tailgating or not.
 
 #### Download Weights -
+
 - [YOLO Weights](https://drive.google.com/drive/folders/1rZHDGBzvcNE4FxVJ3UW6Q291vAlxYIVR?usp=sharing)
 
